@@ -1,0 +1,134 @@
+---
+title: "Linear Regression Assignment-Prakash"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+rm(list=ls(all=TRUE))
+prices <- read.csv('D:/DS Training Videos/ML algo script/1.Linear Regression/HousingCS.csv',sep=",")
+anyNA(prices)
+
+##Checking Data Characteristics
+dim(prices)
+str(prices)
+head(prices)
+names(prices)
+summary(prices)
+
+library(caret)
+library(Metrics)
+library(corrplot)
+train <-read.csv('D:/DS Training Videos/ML algo script/1.Linear Regression/train.csv',sep=",")
+test <-read.csv('D:/DS Training Videos/ML algo script/1.Linear Regression/test.csv',sep=",")
+nrow(train)
+nrow(test)
+colnames(prices)
+##Boxplot
+loop.vector <- 1:14
+
+for (i in 1:14) { # Loop over loop.vector
+  
+  # store data in column.i as x
+  x <- prices[,i]
+  
+  # Plot histogram of x
+  hist(x,
+       main = names(prices)[i] ,
+       xlab = names(prices)[i] ,
+       ylab="Frequency",
+       xlim = c(0, 100))
+}
+for (i in 1:14) { # Loop over loop.vector
+  
+  # store data in column.i as x
+  x <- prices[,i]
+  
+  # Plot histogram of x
+  boxplot(x,xlab =names(prices)[i] ,
+          ylab="Frequency")
+}
+##Correlation matrix
+prices = cor(prices)
+corrplot(prices)
+
+set.seed(10)
+fit4 <- lm(formula = log(medv) ~ crim  +chas+ nox + rm + dis  + ptratio + black + lstat, data=train)
+summary(fit4)
+#step(fit4)
+model_diag <- function(actual, pred) {
+  MSE = mse(actual,pred)
+  RMSE = rmse(actual,pred)
+  print(paste0('Mean squared error =',MSE,' , ', 'Root mean sq error =', RMSE))
+}
+test$pred4 <- predict(fit4, newdata = test )
+model_diag(train$medv,fit4$fitted.values)
+
+model_diag(test$medv,test$pred4)
+
+model <- train(log(medv) ~ crim  + chas + nox + rm + dis + ptratio + black + lstat,
+               method='lm',
+               trControl= trainControl(
+                 method='cv',
+                 number=10,
+                 verboseIter=T),
+               data = train)
+
+model
+train[which(cooks.distance(fit4) > 0.1),]
+plot(fit4)
+
+library(car)
+#check for linearity
+crPlots(fit4)
+#normality of residuals
+qqPlot(fit4)
+
+##check for homoscadicity
+#H0: there is no  heteroscadicity
+#H1: there is  heteroscadicity
+library(lmtest)
+bptest(fit4)##breush pagan test
+
+##check for multicollinearity
+## variable inflation factor
+
+vif(fit4)
+
+##Autocorrelation
+# H0: there exist no autocorrelation
+# H1:there exist autocorrelation
+durbinWatsonTest(fit4)
+
+library(glmnet)
+#cv <- cv.glmnet(train[2:length(train)-1], train$medv, alpha = 0)
+model <- train(
+  log(medv) ~ crim  + chas + nox + rm + dis + ptratio + black + lstat, data = train[-1], 
+  method = "glmnet",
+  trControl = trainControl("cv", number = 10),
+  tuneGrid = expand.grid(alpha = 0.1, lambda = 0.21)
+)
+model
+class(model)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
